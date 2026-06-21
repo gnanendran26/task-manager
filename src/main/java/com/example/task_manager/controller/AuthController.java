@@ -1,5 +1,7 @@
 package com.example.task_manager.controller;
 
+import com.example.task_manager.dto.LoginRequest;
+import com.example.task_manager.dto.LoginResponse;
 import com.example.task_manager.dto.RegisterRequest;
 import com.example.task_manager.service.AuthService;
 import jakarta.validation.Valid;
@@ -25,4 +27,8 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully");
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login (@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
+    }
 }

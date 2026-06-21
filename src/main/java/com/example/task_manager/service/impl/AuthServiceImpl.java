@@ -1,10 +1,13 @@
 package com.example.task_manager.service.impl;
 
 
+import com.example.task_manager.dto.LoginRequest;
+import com.example.task_manager.dto.LoginResponse;
 import com.example.task_manager.dto.RegisterRequest;
 import com.example.task_manager.entity.Role;
 import com.example.task_manager.entity.User;
 import com.example.task_manager.repository.UserRepository;
+import com.example.task_manager.security.JwtService;
 import com.example.task_manager.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +19,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Override
     public void register(RegisterRequest request) {
@@ -32,5 +36,17 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         userRepository.save(user);
+    }
+
+    @Override
+    public LoginResponse login(LoginRequest request) {
+
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new RuntimeException("Invalid Credentials"));
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new RuntimeException("Invalid Credentials");
+        }
+        String token = jwtService.generateToken(user.getEmail());
+        return new LoginResponse(token);
     }
 }
