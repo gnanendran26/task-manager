@@ -2,6 +2,7 @@ package com.example.task_manager.service.impl;
 
 import com.example.task_manager.dto.CreateTaskRequest;
 import com.example.task_manager.dto.TaskResponse;
+import com.example.task_manager.dto.UpdateTaskRequest;
 import com.example.task_manager.entity.*;
 import com.example.task_manager.repository.ProjectRepository;
 import com.example.task_manager.repository.TaskRepository;
@@ -65,6 +66,40 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.save(task);
 
         return map(task);
+    }
+
+    @Override
+    public TaskResponse update(Long taskId, UpdateTaskRequest request) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (request.title() != null) {
+            task.setTitle(request.title());
+        }
+
+        if (request.description() != null) {
+            task.setDescription(request.description());
+        }
+
+        if (request.priority() != null) {
+            task.setPriority(TaskPriority.valueOf(request.priority()));
+        }
+
+        if (request.dueDate() != null) {
+            task.setDueDate(request.dueDate());
+        }
+
+        task = taskRepository.save(task);
+
+        return map(task);
+    }
+
+    @Override
+    public void delete(Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        taskRepository.delete(task);
     }
 
     @Override
