@@ -28,4 +28,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             TaskStatus status,
             Pageable pageable
     );
+
+    long countByProjectOwner(User owner);
+
+    long countByProjectOwnerAndStatus(
+            User owner,
+            TaskStatus status
+    );
 }
