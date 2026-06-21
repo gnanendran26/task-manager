@@ -2,14 +2,14 @@ package com.example.task_manager.service.impl;
 
 import com.example.task_manager.dto.CreateTaskRequest;
 import com.example.task_manager.dto.TaskResponse;
-import com.example.task_manager.entity.Project;
-import com.example.task_manager.entity.Task;
-import com.example.task_manager.entity.TaskPriority;
-import com.example.task_manager.entity.TaskStatus;
+import com.example.task_manager.entity.*;
 import com.example.task_manager.repository.ProjectRepository;
 import com.example.task_manager.repository.TaskRepository;
 import com.example.task_manager.service.TaskService;
+import com.example.task_manager.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,8 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class TaskServiceImpl
-        implements TaskService {
+public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
@@ -66,6 +65,31 @@ public class TaskServiceImpl
         taskRepository.save(task);
 
         return map(task);
+    }
+
+    @Override
+    public Page<TaskResponse> getTasks(TaskStatus status, int page, int size) {
+
+        User user = SecurityUtil.getCurrentUser();
+
+        PageRequest pageable = PageRequest.of(page, size);
+
+        Page<Task> tasks;
+
+        if (status != null) {
+            tasks = taskRepository
+                    .findByProjectOwnerAndStatus(
+                            user,
+                            status,
+                            pageable);
+        } else {
+            tasks = taskRepository
+                    .findByProjectOwner(
+                            user,
+                            pageable);
+        }
+
+        return tasks.map(this::map);
     }
 
     private TaskResponse map(Task task) {
