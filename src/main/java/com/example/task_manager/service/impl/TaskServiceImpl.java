@@ -1,0 +1,140 @@
+package com.example.task_manager.service.impl;
+
+import com.example.task_manager.dto.CreateTaskRequest;
+import com.example.task_manager.dto.TaskResponse;
+import com.example.task_manager.dto.UpdateTaskRequest;
+import com.example.task_manager.entity.*;
+import com.example.task_manager.repository.ProjectRepository;
+import com.example.task_manager.repository.TaskRepository;
+import com.example.task_manager.service.TaskService;
+import com.example.task_manager.util.SecurityUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class TaskServiceImpl implements TaskService {
+
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+
+    @Override
+    public TaskResponse create(CreateTaskRequest request) {
+
+        Project project = projectRepository.findById(
+                        request.projectId())
+                .orElseThrow();
+
+        Task task = Task.builder()
+                .title(request.title())
+                .description(request.description())
+                .priority(TaskPriority.valueOf(request.priority()))
+                .status(TaskStatus.TODO)
+                .dueDate(request.dueDate())
+                .createdAt(LocalDateTime.now())
+                .project(project)
+                .build();
+
+        task = taskRepository.save(task);
+
+        return map(task);
+    }
+
+    @Override
+    public List<TaskResponse> getAll() {
+        return taskRepository.findAll()
+                .stream()
+                .map(this::map)
+                .toList();
+    }
+
+    @Override
+    public TaskResponse updateStatus(
+            Long taskId,
+            TaskStatus status) {
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow();
+
+        task.setStatus(status);
+
+        taskRepository.save(task);
+
+        return map(task);
+    }
+
+    @Override
+    public TaskResponse update(Long taskId, UpdateTaskRequest request) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (request.title() != null) {
+            task.setTitle(request.title());
+        }
+
+        if (request.description() != null) {
+            task.setDescription(request.description());
+        }
+
+        if (request.priority() != null) {
+            task.setPriority(TaskPriority.valueOf(request.priority()));
+        }
+
+        if (request.dueDate() != null) {
+            task.setDueDate(request.dueDate());
+        }
+
+        task = taskRepository.save(task);
+
+        return map(task);
+    }
+
+    @Override
+    public void delete(Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        taskRepository.delete(task);
+    }
+
+    @Override
+    public Page<TaskResponse> getTasks(TaskStatus status, int page, int size) {
+
+        User user = SecurityUtil.getCurrentUser();
+
+        PageRequest pageable = PageRequest.of(page, size);
+
+        Page<Task> tasks;
+
+        if (status != null) {
+            tasks = taskRepository
+                    .findByProjectOwnerAndStatus(
+                            user,
+                            status,
+                            pageable);
+        } else {
+            tasks = taskRepository
+                    .findByProjectOwner(
+                            user,
+                            pageable);
+        }
+
+        return tasks.map(this::map);
+    }
+
+    private TaskResponse map(Task task) {
+        return new TaskResponse(
+                task.getId(),
+                task.getTitle(),
+                task.getDescription(),
+                task.getStatus().name(),
+                task.getPriority().name(),
+                task.getDueDate()
+        );
+    }
+}
